@@ -1,0 +1,42 @@
+{
+  "name": "cdk-nextjs-serverless",
+  "version": "1.0.0",
+  "description": "An AWS CDK construct for deploying a serverless NextJS application",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkossoris/cdk-nextjs-serverless.git"
+  },
+  "keywords": [
+    "aws",
+    "nextjs",
+    "serverless",
+    "cdk",
+    "lambda",
+    "edge",
+    "cloudfront"
+  ],
+  "author": "Mitchell Kossoris",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mkossoris/cdk-nextjs-serverless/issues"
+  },
+  "homepage": "https://github.com/mkossoris/cdk-nextjs-serverless#readme",
+  "dependencies": {
+    "@aws-cdk/aws-cloudfront": "^1.89.0",
+    "@aws-cdk/aws-cloudfront-origins": "^1.89.0",
+    "@aws-cdk/aws-iam": "^1.89.0",
+    "@aws-cdk/aws-lambda": "^1.89.0",
+    "@aws-cdk/aws-logs": "^1.89.0",
+    "@aws-cdk/aws-s3-deployment": "^1.89.0",
+    "@aws-cdk/core": "^1.89.0",
+    "@sls-next/lambda-at-edge": "^1.8.0-alpha.15",
+    "@types/node": "^14.14.26",
+    "child_process": "^1.0.2"
+  }
+}
