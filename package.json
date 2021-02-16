@@ -1,6 +1,6 @@
 {
   "name": "cdk-nextjs-serverless",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "An AWS CDK construct for deploying a serverless NextJS application",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +36,9 @@
     "@aws-cdk/aws-s3-deployment": "^1.89.0",
     "@aws-cdk/core": "^1.89.0",
     "@sls-next/lambda-at-edge": "^1.8.0-alpha.15",
-    "@types/node": "^14.14.26",
     "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.28"
   }
 }

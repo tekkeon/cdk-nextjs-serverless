@@ -6,7 +6,7 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as s3deploy from '@aws-cdk/aws-s3-deployment'
 import { Construct, Duration } from '@aws-cdk/core';
 import path from 'path';
-import { buildNextJsProject } from './utils';
+import { buildNextJsProject, removeOutDir } from './utils';
 
 /**
  * @summary The properties for the NextJSServerless Construct
@@ -120,6 +120,8 @@ export class NextJSServerless extends Construct {
             },
           ],
         });
-      });
+
+        return outDir;
+      })
   }
 }
