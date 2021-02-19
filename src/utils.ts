@@ -34,12 +34,6 @@ export function buildNextJsProject(nextJSDir: string, nodeModulesDir?: string): 
     })
 }
 
-export function removeOutDir(outDir: string) {
-  if (fs.existsSync(outDir)) {
-    fs.rmdirSync(outDir);
-  }
-}
-
 function getNodeModulesDir(inputPath: string, maxDepth: number): string {
   if (maxDepth <= 0) {
     throw new Error(`Max depth exceeded when searching for node_modules directory starting from ${inputPath}.`);

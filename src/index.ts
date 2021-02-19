@@ -6,7 +6,14 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as s3deploy from '@aws-cdk/aws-s3-deployment'
 import { Construct, Duration } from '@aws-cdk/core';
 import path from 'path';
-import { buildNextJsProject, removeOutDir } from './utils';
+import { buildNextJsProject } from './utils';
+
+export enum NextJSServerlessDeployment {
+  CloudFrontMinimal,
+  CloudFrontSplitRoutes,
+  CloudFrontToAPIGateway,
+  APIGatewayOnly
+}
 
 /**
  * @summary The properties for the NextJSServerless Construct
@@ -25,36 +32,45 @@ export interface NextJSServerlessProps {
    */
   readonly nodeModulesDir?: string
   /**
+   * (NOT YET FUNCTIONAL - USING THIS WILL DO NOTHING) Type of deployment. See documentation for how this differs the architecture.
+   *
+   * @default - CloudFrontOnlyMinimal
+   */
+  readonly deploymentType?: NextJSServerlessDeployment
+  /**
    * Existing instance of Lambda Function object. If this is set then the lambdaFunctionProps is ignored.
    *
    * @default - None
    */
-  readonly existingLambdaObj?: lambda.Function,
-  /**
-   * User provided props to override the default props for the Lambda function.
-   *
-   * @default - Default props are used
-   */
-  readonly lambdaFunctionProps?: lambda.FunctionProps
+  readonly lambdaFunctionProps?: Partial<lambda.FunctionProps>
   /**
    * Optional user provided props to override the default props for the API Gateway.
    *
    * @default - Default props are used
    */
-  readonly cloudFrontDistributionProps?: cloudfront.DistributionProps | any,
+  readonly cloudFrontDistributionProps?: Partial<cloudfront.DistributionProps>,
   /**
    * User provided props to override the default props for the CloudWatchLogs LogGroup.
    *
    * @default - Default props are used
    */
-  readonly logGroupProps?: logs.LogGroupProps
+  readonly logGroupProps?: Partial<logs.LogGroupProps>
+}
+
+const defaultLambdaFunctionProps: lambda.FunctionProps = {
+  runtime: lambda.Runtime.NODEJS_12_X,
+  handler: '',
+  code: lambda.Code.fromAsset(''),
+  timeout: Duration.seconds(10)
 }
 
 export class NextJSServerless extends Construct {
-  // public readonly cloudFrontWebDistribution: cloudfront.Distribution;
-  // public readonly edgeLambdaFunctionVersion?: lambda.Version;
-  // public readonly cloudFrontLoggingBucket?: s3.Bucket;
-  // public readonly lambdaFunction: lambda.Function;
+  public cloudFrontWebDistribution?: cloudfront.Distribution;
+  public edgeLambdaFunctionVersion?: lambda.Version;
+  public cloudFrontLoggingBucket?: s3.Bucket;
+  public staticAssetsBucket?: s3.Bucket;
+  public lambdaFunctionVersions: lambda.IVersion[];
+  private buildPromise: Promise<NextJSServerless>;
 
   /**
    * @summary Constructs a new instance of the CloudFrontToApiGatewayToLambda class.
@@ -67,61 +83,86 @@ export class NextJSServerless extends Construct {
   constructor(scope: Construct, id: string, props: NextJSServerlessProps) {
     super(scope, id);
 
-    buildNextJsProject(props.nextJSDir, props.nodeModulesDir)
+    this.lambdaFunctionVersions = [];
+
+    this.buildPromise = buildNextJsProject(props.nextJSDir, props.nodeModulesDir)
       .then((outDir) => {
         if (!outDir) {
           throw new Error();
         }
 
+        // Lambda Functions
+        var edgeFunctionProps: cloudfront.experimental.EdgeFunctionProps = {
+          ...defaultLambdaFunctionProps,
+          ...props.lambdaFunctionProps
+        }
+
         const defaultLambda = new cloudfront.experimental.EdgeFunction(this, 'NextJSServerlessDefaultLambda', {
-          runtime: lambda.Runtime.NODEJS_12_X,
+          ...edgeFunctionProps,
           handler: 'index.handler',
-          code: lambda.Code.fromAsset(path.join(outDir, 'default-lambda')),
-          timeout: Duration.seconds(10)
+          code: lambda.Code.fromAsset(path.join(outDir, 'default-lambda'))
         });
 
         const apiLambda = new cloudfront.experimental.EdgeFunction(this, 'NextJSServerlessAPILambda', {
-          runtime: lambda.Runtime.NODEJS_12_X,
+          ...edgeFunctionProps,
           handler: 'index.handler',
           code: lambda.Code.fromAsset(path.join(outDir, 'api-lambda')),
-          timeout: Duration.seconds(10),
         });
 
-        const assetsBucket = new s3.Bucket(this, 'NextJSServerlessBucket', {});
+        this.lambdaFunctionVersions.push(defaultLambda, apiLambda);
+
+        // S3 Buckets
+        this.staticAssetsBucket = new s3.Bucket(this, 'NextJSServerlessBucket');
+        this.cloudFrontLoggingBucket = new s3.Bucket(this, 'NextJSServerlessLogBucket');
         new s3deploy.BucketDeployment(this, 'NextJSServerlessAssets', {
-          sources: [s3deploy.Source.asset(path.join(outDir, 'assets'))],
-          destinationBucket: assetsBucket,
+          sources: [
+            s3deploy.Source.asset(path.join(outDir, 'assets'))
+          ],
+          destinationBucket: this.staticAssetsBucket,
         });
 
-        const origin = new origins.S3Origin(assetsBucket);
+        const origin = new origins.S3Origin(this.staticAssetsBucket);
 
-        // Default distribution requests to the default lambda
-        const distribution = new cloudfront.Distribution(this, 'NextJSServerlessCloudfront', {
+        // CloudFront Distribution
+        this.cloudFrontWebDistribution = new cloudfront.Distribution(this, 'NextJSServerlessCloudfront', {
+          ...props.cloudFrontDistributionProps,
           defaultBehavior: {
-            origin: origin,
+            ...props.cloudFrontDistributionProps?.defaultBehavior,
+            origin,
             viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             edgeLambdas: [
               {
                 functionVersion: defaultLambda.currentVersion,
                 eventType: cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
               }
-            ],
-          }
-        });
-
-        distribution.addBehavior('_next/static/*', origin, {});
-
-        distribution.addBehavior('api/*', origin, {
-          edgeLambdas: [
-            {
-              functionVersion: apiLambda.currentVersion,
-              eventType: cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
-              includeBody: true
+            ]
+          },
+          additionalBehaviors: {
+            ...props.cloudFrontDistributionProps?.additionalBehaviors,
+            '_next/static/*': {
+              origin
             },
-          ],
+            'api/*': {
+              origin,
+              edgeLambdas: [
+                {
+                  functionVersion: apiLambda.currentVersion,
+                  eventType: cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
+                  includeBody: true
+                }
+              ]
+            }
+          },
+          logBucket: this.cloudFrontLoggingBucket
         });
 
         return outDir;
+      }).then(() => {
+        return this;
       })
+  }
+
+  promise() {
+    return this.buildPromise;
   }
 }
