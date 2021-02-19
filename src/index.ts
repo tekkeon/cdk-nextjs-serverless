@@ -32,29 +32,23 @@ export interface NextJSServerlessProps {
    */
   readonly nodeModulesDir?: string
   /**
-   * (NOT YET FUNCTIONAL - USING THIS WILL DO NOTHING) Type of deployment. See documentation for how this differs the architecture.
+   * (NOT YET FUNCTIONAL) Type of deployment. See documentation for how this differs the architecture.
    *
    * @default - CloudFrontOnlyMinimal
    */
   readonly deploymentType?: NextJSServerlessDeployment
   /**
-   * Existing instance of Lambda Function object. If this is set then the lambdaFunctionProps is ignored.
+   * (Optional) Lambda function props to use for the NextJS rendering and API Lambdas.
    *
    * @default - None
    */
   readonly lambdaFunctionProps?: Partial<lambda.FunctionProps>
   /**
-   * Optional user provided props to override the default props for the API Gateway.
+   * (Optional) Props to override the default props for the CloudFront distribution.
    *
    * @default - Default props are used
    */
-  readonly cloudFrontDistributionProps?: Partial<cloudfront.DistributionProps>,
-  /**
-   * User provided props to override the default props for the CloudWatchLogs LogGroup.
-   *
-   * @default - Default props are used
-   */
-  readonly logGroupProps?: Partial<logs.LogGroupProps>
+  readonly cloudFrontDistributionProps?: Partial<cloudfront.DistributionProps>
 }
 
 const defaultLambdaFunctionProps: lambda.FunctionProps = {
@@ -65,19 +59,19 @@ const defaultLambdaFunctionProps: lambda.FunctionProps = {
 }
 
 export class NextJSServerless extends Construct {
+  public cloudFrontLoggingBucket?: s3.Bucket;
   public cloudFrontWebDistribution?: cloudfront.Distribution;
   public edgeLambdaFunctionVersion?: lambda.Version;
-  public cloudFrontLoggingBucket?: s3.Bucket;
-  public staticAssetsBucket?: s3.Bucket;
   public lambdaFunctionVersions: lambda.IVersion[];
+  public staticAssetsBucket?: s3.Bucket;
+  
   private buildPromise: Promise<NextJSServerless>;
 
   /**
-   * @summary Constructs a new instance of the CloudFrontToApiGatewayToLambda class.
+   * @summary Constructs a new instance of the NextJSServerless class.
    * @param {cdk.App} scope - represents the scope for all the resources.
    * @param {string} id - this is a a scope-unique id.
    * @param {NextJSServerlessProps} props - user provided props for the construct
-   * @since 0.8.0
    * @access public
    */
   constructor(scope: Construct, id: string, props: NextJSServerlessProps) {
@@ -153,10 +147,8 @@ export class NextJSServerless extends Construct {
               ]
             }
           },
-          logBucket: this.cloudFrontLoggingBucket
+          logBucket: this.cloudFrontLoggingBucket,
         });
-
-        return outDir;
       }).then(() => {
         return this;
       })
