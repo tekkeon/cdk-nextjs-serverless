@@ -85,6 +85,13 @@ new NextJSServerless(this, 'NextJSApp', {
 })
 ```
 
+## Features
+- [X] Build and deploy with single NextJS directory prop
+- [X] Ability to supply arguments for underlying created resources before and after instantiation
+- [X] CloudFront invalidation on deployment
+- [ ] Deployment with per-page lambdas
+- [ ] Deployment to API Gateway + Lambda rather than CloudFront + Lambda@Edge
+
 ## Examples
 Checkout the [examples directory](https://github.com/mkossoris/cdk-nextjs-serverless/tree/main/examples) to see a real world usage which you can clone and try deploying for yourself. 
 
