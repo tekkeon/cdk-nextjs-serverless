@@ -1,6 +1,6 @@
 {
   "name": "cdk-nextjs-serverless",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "An AWS CDK construct for deploying a serverless NextJS application",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

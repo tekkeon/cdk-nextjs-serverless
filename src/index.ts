@@ -7,6 +7,7 @@ import * as s3deploy from '@aws-cdk/aws-s3-deployment'
 import { Construct, Duration } from '@aws-cdk/core';
 import path from 'path';
 import { buildNextJsProject } from './utils';
+import { BucketDeploymentProps } from '@aws-cdk/aws-s3-deployment';
 
 export enum NextJSServerlessDeployment {
   CloudFrontMinimal,
@@ -49,6 +50,12 @@ export interface NextJSServerlessProps {
    * @default - Default props are used
    */
   readonly cloudFrontDistributionProps?: Partial<cloudfront.DistributionProps>
+  /**
+   * (Optional)
+   * 
+   * @default true
+   */
+  readonly invalidateOnDeploy?: boolean;
 }
 
 const defaultLambdaFunctionProps: lambda.FunctionProps = {
@@ -108,12 +115,6 @@ export class NextJSServerless extends Construct {
         // S3 Buckets
         this.staticAssetsBucket = new s3.Bucket(this, 'NextJSServerlessBucket');
         this.cloudFrontLoggingBucket = new s3.Bucket(this, 'NextJSServerlessLogBucket');
-        new s3deploy.BucketDeployment(this, 'NextJSServerlessAssets', {
-          sources: [
-            s3deploy.Source.asset(path.join(outDir, 'assets'))
-          ],
-          destinationBucket: this.staticAssetsBucket,
-        });
 
         const origin = new origins.S3Origin(this.staticAssetsBucket);
 
@@ -149,6 +150,25 @@ export class NextJSServerless extends Construct {
           },
           logBucket: this.cloudFrontLoggingBucket,
         });
+
+        let bucketDeploymentProps: BucketDeploymentProps = {
+          sources: [
+            s3deploy.Source.asset(path.join(outDir, 'assets'))
+          ],
+          destinationBucket: this.staticAssetsBucket,
+        }
+
+        // Can't use !props.invalidateOnDeploy because if it's undefined, it would be falsy
+        // and the default should be true
+        if (props.invalidateOnDeploy !== false) {
+          bucketDeploymentProps = {
+            ...bucketDeploymentProps,
+            distribution: this.cloudFrontWebDistribution,
+            distributionPaths: ['/*']
+          }
+        }
+
+        new s3deploy.BucketDeployment(this, 'NextJSServerlessAssets', bucketDeploymentProps);
       }).then(() => {
         return this;
       })
