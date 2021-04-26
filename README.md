@@ -1,10 +1,13 @@
 # cdk-nextjs-serverless
 
-**Note: This package is under development and in alpha. Feel free to experiment with it and leave issues but do not expect it to be production-ready at this time.**
-
-cdk-nextjs-serverless is a Level 3/Pattern construct for deploying NextJS applications to AWS on CloudFront, Lambda@Edge, and S3 for a completely serverless frontend stack. Currently, the package supports only CloudFront deployment utilizing the same build process as Serverless Framework's [NextJS at the Edge component](https://www.serverless.com/blog/serverless-nextjs). As I continue to develop the project, I plan to support per-page Lambdas and an option for deploying to API Gateway.
+**cdk-nextjs-serverless** is a Level 3/Pattern construct for deploying NextJS applications to AWS on CloudFront, Lambda@Edge, and S3 for a completely serverless frontend stack. Currently, the package supports only CloudFront deployment utilizing the same build process as Serverless Framework's [NextJS at the Edge component](https://www.serverless.com/blog/serverless-nextjs). As I continue to develop the project, I plan to support per-page Lambdas and an option for deploying to API Gateway.
 
 *Note: this package does not utilize the serverless framework CLI to deploy resources - it is fully written and deployed in CDK-generated CloudFormation.*
+
+## Demo
+
+🚀 Live demo of NextJS app deployed through **cdk-nextjs-serverless**: https://d3027dwnjxq2g2.cloudfront.net/
+See the source code and setup instructions in the [examples directory](https://github.com/mkossoris/cdk-nextjs-serverless/tree/main/examples).
 
 ## Installation
 
@@ -28,7 +31,7 @@ At a minimum, specify the location of your Next app directory, and the construct
 
 ```ts
 new NextJSServerless(this, 'NextJSApp', {
-  nextJSDir: 'next-app' // Relative to CDK project root
+  nextJSDir: './next-app' // Relative to CDK project root
 })
 ```
 The construct will attempt to locate the nearest parent `node_modules` directory of the supplied `nextJSDir`. If your `next` package is installed in a different `node_modules` directory or the construct cannot find the directory, you can manually specify it:
@@ -36,7 +39,7 @@ The construct will attempt to locate the nearest parent `node_modules` directory
 ```ts
 new NextJSServerless(this, 'NextJSApp', {
   nextJSDir: 'src/next-app',
-  nodeModulesDir: 'node_modules' // Relative to CDK project root
+  nodeModulesDir: './node_modules' // Relative to CDK project root
 })
 ```
 
@@ -81,6 +84,9 @@ new NextJSServerless(this, 'NextJSApp', {
   });
 })
 ```
+
+## Examples
+Checkout the [examples directory](https://github.com/mkossoris/cdk-nextjs-serverless/tree/main/examples) to see a real world usage which you can clone and try deploying for yourself. 
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
