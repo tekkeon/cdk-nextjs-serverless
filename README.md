@@ -1,3 +1,5 @@
+### :warning: **Serverless has released an official CDK construct for NextJS [here](https://github.com/serverless-nextjs/serverless-next.js/tree/master/packages/serverless-components/nextjs-cdk-construct). As such, I am archiving this repo.**
+
 # cdk-nextjs-serverless
 
 **cdk-nextjs-serverless** is a Level 3/Pattern construct for deploying NextJS applications to AWS on CloudFront, Lambda@Edge, and S3 for a completely serverless frontend stack. Currently, the package supports only CloudFront deployment utilizing the same build process as Serverless Framework's [NextJS at the Edge component](https://www.serverless.com/blog/serverless-nextjs). As I continue to develop the project, I plan to support per-page Lambdas and an option for deploying to API Gateway.
